@@ -26,7 +26,7 @@ int main (int argc, char const *argv[]) {
     close(pipeEnds[1]);
     dup2(pipeEnds[0], STDIN);
     char *argumentos[2] = {"/tmp", NULL};
-    execvp("./slave", argumentos);
+    execvp("./slave.out", argumentos);
     perror("execvp");
     exit(-1);
   }
