@@ -5,7 +5,7 @@
 #define MAX_LEN 8192
 #define SAT_SOLVER "minisat"
 
-#include <string.h>
+#include <unistd.h>
 
 // Recibe los paths de el/los archivos a procesar. Tiene que recibir los paths por stdin e imprimir por stdout, despues se cambian los fd a los pipes correspondientes en el master.
 
@@ -26,17 +26,16 @@ int main(int argc, char const *argv[]) {
     sprintf(command, "%s %s | grep -o -e \"Number of.*[0-9]\\+\" -e \"CPU time.*\" -e \".*SATISFIABLE\"", SAT_SOLVER, line);
     
     FILE *outputStream;
-    if ((outputStream = popen(command, "r")) == NULL) {
-        perror("popen");
-    }
+    if ((outputStream = popen(command, "r")) == NULL)
+      perror("popen");
 
     int count = fread(output, sizeof(char), MAX_LEN, outputStream);
     output[count] = 0;
 
-    printf("%s\n", output);
+    write(STDOUT, output, count);
 
     if (pclose(outputStream) == -1)
-        perror("pclose");
+      perror("pclose");
   }
 
   free(line);
