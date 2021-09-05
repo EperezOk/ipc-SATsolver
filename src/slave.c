@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <string.h>
 
 #define STDIN 0
 #define STDOUT 1
@@ -8,7 +10,7 @@
 #define SAT_SOLVER "minisat"
 
 FILE *executeSolver(char *fileName);
-void printResult(FILE *outputStream);
+void printResult(char *fileName, FILE *outputStream);
 
 int main(int argc, char const *argv[]) {
 
@@ -20,7 +22,7 @@ int main(int argc, char const *argv[]) {
     line[nread-1] = 0;
     
     FILE *outputStream = executeSolver(line);
-    printResult(outputStream);
+    printResult(line, outputStream);
 
     if (pclose(outputStream) == -1)
       perror("pclose");
@@ -41,10 +43,20 @@ FILE *executeSolver(char *fileName) {
   return outputStream;
 }
 
-void printResult(FILE *outputStream) {
+void printResult(char *fileName, FILE *outputStream) {
   char output[MAX_LEN + 1];
 
   int count = fread(output, sizeof(char), MAX_LEN, outputStream);
+  int fileNameLength = strlen(fileName);
+  strcat(output, "File: ");
+  strcat(output, fileName);
+  strcat(output, "\n");
+
+  char slaveIDString[20];
+
+  pid_t slaveID = getpid();
+  count += snprintf(slaveIDString, 20, "Slave ID: %d\n", slaveID) + fileNameLength + 7;
+  strcat(output, slaveIDString);
   output[count] = 0;
 
   write(STDOUT, output, count);
