@@ -47,6 +47,7 @@ void printResult(char *fileName, FILE *outputStream) {
   char output[MAX_LEN + 1];
 
   int count = fread(output, sizeof(char), MAX_LEN, outputStream);
+  output[count] = 0;
   int fileNameLength = strlen(fileName);
   strcat(output, "File: ");
   strcat(output, fileName);
