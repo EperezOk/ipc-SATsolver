@@ -9,22 +9,20 @@
 #include <sys/ipc.h>
 #include <sys/stat.h>
 #include <sys/shm.h>
+// SEM include
+#include <semaphore.h>
+#include <fcntl.h>
 
+#define SEM_NAME "/semAppView"
 #define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 #define BUF_SIZE 1024
-#define SEM_KEY 0x5678
 
-typedef struct shmseg {
-  int count;
+#define handle_error(msg) \
+           do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+typedef struct SharedMem {
   char buff[BUF_SIZE];
-} shmseg;
-
-union semun {
-  int              val;    /* Value for SETVAL */
-  struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
-  unsigned short  *array;  /* Array for GETALL, SETALL */
-  struct seminfo  *__buf;  /* Buffer for IPC_INFO (Linux-specific) */
-};
+} SharedMem;
 
 int main(int argc, const char *argv[]) {
   
@@ -33,49 +31,45 @@ int main(int argc, const char *argv[]) {
     exit(-1);
   }
 
-  union semun dummy;
-
-  int shmkey = getpid(), shmid, semid;
-  struct shmseg *shmp;
-
-  /* Create set containing two semaphores; initialize so that writer has first access to shared memory. */
-
-  semid = semget(SEM_KEY, 2, IPC_CREAT | OBJ_PERMS);
-  if (semid == -1)
-    perror("semget");
-
-  /*
-  FALTA INICIALIZAR EL SEMAFORO, SEMGET O CAPAZ SEM_OPEN
-
-  if (initSemAvailable(semid, WRITE_SEM) == -1)
-    perror("initSemAvailable");
-  if (initSemInUse(semid, READ_SEM) == -1)
-    perror("initSemInUse");
-
-  semctl(semid, 0, IPC_SET | ) // VER SETVAL EN VEZ DE IPC_SET
-  */
+  int sharedMemKey = getpid(), sharedMemID;
+  struct SharedMem *sharedMem;
 
   /* Create shared memory; attach at address chosen by system */
 
-  shmid = shmget(shmkey, sizeof(struct shmseg), IPC_CREAT | OBJ_PERMS);
-  printf("SHMID: %d\n", shmid);
-  if (shmid == -1)
-    perror("shmget");
+  sharedMemID = shmget(sharedMemKey, sizeof(struct SharedMem), IPC_CREAT | OBJ_PERMS);
+  printf("%d", sharedMemID);
+  if (sharedMemID == -1)
+    handle_error("shmget");
 
-  shmp = shmat(shmid, NULL, 0);
-  if (shmp == (void *) -1)
-    perror("shmat");
+  sharedMem = shmat(sharedMemID, NULL, 0);
+  if (sharedMem == (void *) -1)
+    handle_error("shmat");
 
-  shmp->count = sprintf(shmp->buff, "TESTING\n");
+  // SEMAPHORE - CHECKEAR ERRORES
 
-  if (shmdt(shmp) == -1)
-    perror("shmdt");
+  sem_t *semaph = sem_open(SEM_NAME, O_CREAT, 0660, 1); // initialValue = 1
+  if (semaph == SEM_FAILED)
+    handle_error("sem_open");
   
-  masterADT master = nuevoMaster(argv+1, argc-1);
+  if (sem_wait(semaph) == -1)
+    handle_error("sem_wait");
 
-  initializeSlaves(master);
-  setInitialFiles(master);
-  monitorSlaves(master);
-  closePipes(master);
-  killMaster(master);
+  sprintf(sharedMem->buff, "TESTING\n");
+
+  if (sem_post(semaph) == -1)
+    handle_error("sem_post");
+  
+  if (sem_close(semaph) == -1)
+    handle_error("sem_close");
+
+  if (shmdt(sharedMem) == -1)
+    handle_error("shmdt");
+  
+  // masterADT master = nuevoMaster(argv+1, argc-1);
+
+  // initializeSlaves(master);
+  // setInitialFiles(master);
+  // monitorSlaves(master);
+  // closePipes(master);
+  // killMaster(master);
 }
