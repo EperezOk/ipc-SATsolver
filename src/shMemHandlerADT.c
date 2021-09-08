@@ -9,14 +9,18 @@
 
 #include <unistd.h>
 
-#define BUF_SIZE 1024
+#define BUF_SIZE 256
+#define MAX_SLOTS 15
 #define SEM_NAME "/semAppView"
 #define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 #define handle_error(msg) \
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 typedef struct SharedMem {
-  char buff[BUF_SIZE];
+  int currentWriteSlot;
+  int currentReadSlot;
+  int finishedWriting;
+  char buff[MAX_SLOTS][BUF_SIZE];
 } SharedMem;
 
 typedef struct shMemHandlerCDT {
@@ -29,7 +33,7 @@ shMemHandlerADT newShMemHandler() {
   if(shMemHandler == NULL)
     handle_error("calloc");
 
-  shMemHandler->semaph = sem_open(SEM_NAME, O_CREAT, 0660, 1);
+  shMemHandler->semaph = sem_open(SEM_NAME, O_CREAT, 0660, 0);
   if (shMemHandler->semaph == SEM_FAILED)
     handle_error("sem_open");
 
@@ -43,27 +47,42 @@ int initShMem(int key) {
   return shMemID;
 }
 
-void attachTo(shMemHandlerADT shMemHandler, int shMemID) {
+void attachTo(shMemHandlerADT shMemHandler, int shMemID, int reader) {
   shMemHandler->shMem = (SharedMem *) shmat(shMemID, NULL, 0);
+  if (reader)
+    shMemHandler->shMem->currentReadSlot = 0;
+  else {
+    shMemHandler->shMem->currentWriteSlot = 0;
+    shMemHandler->shMem->finishedWriting = 0;
+  }
+     
   if (shMemHandler->shMem == (void *) -1)
     handle_error("shmat");
 }
 
 void writeShMem(shMemHandlerADT shMemHandler, const char *msg) {
-  if (sem_wait(shMemHandler->semaph) == -1)
-    handle_error("sem_wait");
-
-  snprintf(shMemHandler->shMem->buff, BUF_SIZE, "%s", msg);
-  sleep(10);
-
+  if (shMemHandler->shMem->currentWriteSlot == MAX_SLOTS) {
+    printf("Out of memory for results\n");
+    exit(EXIT_FAILURE);
+  }
+  snprintf(shMemHandler->shMem->buff[shMemHandler->shMem->currentWriteSlot++], BUF_SIZE, "%s", msg);
+  
   if (sem_post(shMemHandler->semaph) == -1)
     handle_error("sem_post");
 }
 
 void readShMem(shMemHandlerADT shMemHandler, char *buff) {
-  sem_wait(shMemHandler->semaph);
-  snprintf(buff, BUF_SIZE, "%s", shMemHandler->shMem->buff);
-  sem_post(shMemHandler->semaph);
+  if (sem_wait(shMemHandler->semaph) == -1)
+    handle_error("sem_post");
+  snprintf(buff, BUF_SIZE, "%s", shMemHandler->shMem->buff[shMemHandler->shMem->currentReadSlot++]);
+}
+
+void finishWriting(shMemHandlerADT shMemHandler) {
+  shMemHandler->shMem->finishedWriting = 1;
+}
+
+int canRead(shMemHandlerADT shMemHandler) {
+  return !shMemHandler->shMem->finishedWriting;
 }
 
 void closeShMem(shMemHandlerADT shMemHandler) {

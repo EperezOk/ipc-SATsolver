@@ -11,28 +11,14 @@ int main(int argc, const char *argv[]) {
     printf("Please provide the files to process.\n");
     exit(EXIT_FAILURE);
   }
-
-  shMemHandlerADT shMemHandler = newShMemHandler();
-
-  int shMemID = initShMem(getpid());
-
-  setvbuf(stdout, NULL, _IONBF, 0);
-  printf("%d", shMemID);
-
-  attachTo(shMemHandler, shMemID);
-  writeShMem(shMemHandler, "TESTING");
-  closeShMem(shMemHandler);
-
-  destroyShMem(shMemHandler, shMemID);
-  freeHandler(shMemHandler);
   
-  // masterADT master = newMaster(argv+1, argc-1);
+  masterADT master = newMaster(argv+1, argc-1, getpid());
 
-  // initializeSlaves(master);
-  // setInitialFiles(master);
-  // monitorSlaves(master);
-  // closePipes(master);
-  // freeMaster(master);
+  initializeSlaves(master);
+  setInitialFiles(master);
+  monitorSlaves(master);
+  closeResources(master);
+  freeMaster(master);
 
   return 0;
 }

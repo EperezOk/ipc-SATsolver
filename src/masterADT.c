@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include "masterADT.h"
+#include "shMemHandlerADT.h"
 
 #define STDIN 0
 #define STDOUT 1
@@ -22,14 +23,25 @@ typedef struct masterCDT {
   const char **files;
   int slaveCount;
   int taskNum;
+
+  shMemHandlerADT shMemHandler;
+  int shMemID;
 } masterCDT;
 
-masterADT newMaster(const char *files[], int fileCount) {
+masterADT newMaster(const char *files[], int fileCount, int shmKey) {
   masterADT newMaster = calloc(1, sizeof(masterCDT));
   if(newMaster == NULL)
     handle_error("malloc");
   newMaster->fileCount = fileCount;
   newMaster->files = files;
+
+  newMaster->shMemHandler = newShMemHandler();
+  newMaster->shMemID = initShMem(getpid());
+  attachTo(newMaster->shMemHandler, newMaster->shMemID, 0);
+
+  setvbuf(stdout, NULL, _IONBF, 0);
+  printf("%d", newMaster->shMemID);
+
   return newMaster;
 }
 
@@ -77,11 +89,11 @@ void setInitialFiles(masterADT master) {
   master->taskNum = taskNum;
 }
 
-static void readResultPipe(int resultPipeEnd) {
+static void readResultPipe(shMemHandlerADT shMemHandler, int resultPipeEnd) {
   char buff[MAX_OUT_LEN];
   int readCount = read(resultPipeEnd, buff, MAX_OUT_LEN);
   buff[readCount] = 0;
-  printf("%s\n", buff);
+  writeShMem(shMemHandler, buff);
 }
 
 static void giveAnotherTask(int filePipeEnd, const char *file) {
@@ -93,7 +105,7 @@ static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSla
   for(int nSlave = 0; nSlave < master->slaveCount; nSlave++)
     if (FD_ISSET(master->resultPipe[nSlave][0], &fdSlaves)) {
       (*completedTasks)++;
-      readResultPipe(master->resultPipe[nSlave][0]);
+      readResultPipe(master->shMemHandler, master->resultPipe[nSlave][0]);
 
       if (master->taskNum < master->fileCount)
         giveAnotherTask(master->filePipe[nSlave][1], master->files[(master->taskNum)++]);
@@ -103,6 +115,8 @@ static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSla
 void monitorSlaves(masterADT master) {
   fd_set fdSlaves;
   int completedTasks = 0;
+
+  sleep(3); // Wait for view to connect
 
   while (completedTasks < master->fileCount) {
     FD_ZERO(&fdSlaves);
@@ -114,15 +128,25 @@ void monitorSlaves(masterADT master) {
     else
       manageNewResults(master, &completedTasks, fdSlaves);
   }
+
+  finishWriting(master->shMemHandler);
 }
 
-void closePipes(masterADT master){
+static void closePipes(masterADT master){
   for (int i = 0; i < master->slaveCount; i++) {
     close(master->resultPipe[i][0]);
     close(master->filePipe[i][1]);
   }
 }
 
+void closeResources(masterADT master){
+  closeShMem(master->shMemHandler);
+  closePipes(master);
+}
+
+
 void freeMaster(masterADT master) {
+  destroyShMem(master->shMemHandler, master->shMemID);
+  freeHandler(master->shMemHandler);
   free(master);
 }

@@ -20,10 +20,14 @@ int main(int argc, const char *argv[]) {
 
   shMemHandlerADT shMemHandler = newShMemHandler();
 
-  attachTo(shMemHandler, shMemID);
+  attachTo(shMemHandler, shMemID, 1);
   char output[MAX_OUTPUT_LEN+1];
-  readShMem(shMemHandler, output);
-  printf("%s\n", output);
+
+  while(canRead(shMemHandler)) {
+    readShMem(shMemHandler, output);
+    printf("%s\n", output);
+  }
+
   closeShMem(shMemHandler);
   freeHandler(shMemHandler);
 
