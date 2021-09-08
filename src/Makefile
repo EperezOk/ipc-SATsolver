@@ -1,0 +1,31 @@
+include ./include/Makefile.inc
+
+SOURCES := $(wildcard *.c)
+OBJECTS := $(wildcard *.o)
+TARGETS := $(wildcard ../*.out)
+OBJECTS_SOLVER := $(OBJECT_SATSOLVER:.c=.o) $(OBJECT_MASTERADT:.c=.o) $(OBJECT_SHMEM_HANDLERADT:.c=.o)
+OBJECTS_SLAVE := $(OBJECT_SLAVE:.c=.o)
+OBJECTS_VIEW := $(OBJECT_VIEW:.c=.o) $(OBJECT_SHMEM_HANDLERADT:.c=.o)
+TARGET_SOLVER := SATSolver
+TARGET_SLAVE := slave
+TARGET_VIEW := view
+
+all: $(TARGET_SOLVER) $(TARGET_SLAVE) $(TARGET_VIEW)
+
+$(TARGET_SOLVER): $(OBJECTS_SOLVER)
+	$(COMPILER) $(CFLAGS) $(OBJECTS_SOLVER) -o ../$(TARGET_SOLVER).out
+
+$(TARGET_SLAVE): $(OBJECTS_SLAVE)
+	$(COMPILER) $(CFLAGS) $(OBJECTS_SLAVE) -o ../$(TARGET_SLAVE).out
+
+$(TARGET_VIEW): $(OBJECTS_VIEW)
+	$(COMPILER) $(CFLAGS) $(OBJECTS_VIEW) -o ../$(TARGET_VIEW).out
+
+%.o: %.c
+	$(COMPILER) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(OBJECTS) $(TARGETS)
+	
+.PHONY: all clean $(TARGET_SOLVER) $(TARGET_SLAVE) $(TARGET_VIEW)
+	

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "shMemHandlerADT.h"
+#include "include/shMemHandlerADT.h"
 
 #define STDIN 0
 #define MAX_ID_LEN 15

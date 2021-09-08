@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/select.h>
-#include "masterADT.h"
-#include "shMemHandlerADT.h"
+#include "include/masterADT.h"
+#include "include/shMemHandlerADT.h"
 
 #define STDIN 0
 #define STDOUT 1

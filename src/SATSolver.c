@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "masterADT.h"
-#include "shMemHandlerADT.h"
+#include "include/masterADT.h"
+#include "include/shMemHandlerADT.h"
 
 int main(int argc, const char *argv[]) {
   

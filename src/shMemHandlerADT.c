@@ -5,9 +5,7 @@
 #include <sys/shm.h>
 #include <semaphore.h>
 #include <fcntl.h>
-#include "shMemHandlerADT.h"
-
-#include <unistd.h>
+#include "include/shMemHandlerADT.h"
 
 #define BUF_SIZE 256
 #define MAX_SLOTS 15
