@@ -22,15 +22,15 @@ typedef struct masterCDT {
   int taskNum;
 } masterCDT;
 
-masterADT nuevoMaster(const char *files[], int fileCount) {
-  masterADT nuevoMaster = calloc(1, sizeof(masterCDT));
-  if(nuevoMaster == NULL) {
+masterADT newMaster(const char *files[], int fileCount) {
+  masterADT newMaster = calloc(1, sizeof(masterCDT));
+  if(newMaster == NULL) {
     perror("malloc");
     exit(-1);
   }
-  nuevoMaster->fileCount = fileCount;
-  nuevoMaster->files = files;
-  return nuevoMaster;
+  newMaster->fileCount = fileCount;
+  newMaster->files = files;
+  return newMaster;
 }
 
 void initializeSlaves(masterADT master) {

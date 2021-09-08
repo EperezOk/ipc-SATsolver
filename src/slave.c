@@ -29,7 +29,7 @@ int main(int argc, char const *argv[]) {
   }
 
   free(line);
-  return 1;
+  return 0;
 }
 
 FILE *executeSolver(char *fileName) {

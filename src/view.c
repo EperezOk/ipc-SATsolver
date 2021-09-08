@@ -1,61 +1,38 @@
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-#include <semaphore.h>
-#include <fcntl.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
+#include "shMemHandlerADT.h"
 
 #define STDIN 0
-#define MAX_LEN 15
+#define MAX_ID_LEN 15
+#define MAX_OUTPUT_LEN 1024
 
-typedef struct shmseg {
-  char buff[MAX_LEN];
-} shmseg;
+int getIdFromStdin();
 
 int main(int argc, const char *argv[]) {
-  struct shmseg *shmp;
 
-  int shmid;
+  int shMemID;
 
   if (argc == 2)
-    shmid = atoi(argv[1]);
-  else {
-    char buff[MAX_LEN + 1];
-    int count = read(STDIN, buff, MAX_LEN);
-    buff[count] = 0;
-    shmid = atoi(buff);
-  }
+    shMemID = atoi(argv[1]);
+  else 
+    shMemID = getIdFromStdin();
 
-  shmp = shmat(shmid, NULL, 0);
-  if (shmp == (void *) -1)
-    perror("shmat");
+  shMemHandlerADT shMemHandler = newShMemHandler();
 
+  attachTo(shMemHandler, shMemID);
+  char output[MAX_OUTPUT_LEN+1];
+  readShMem(shMemHandler, output);
+  printf("%s\n", output);
+  closeShMem(shMemHandler);
+  freeHandler(shMemHandler);
 
-  // SEMAPHORE - CHECKEAR ERRORES
-  sem_t *semaph = sem_open("/semAppView", O_CREAT);
-  if (semaph == SEM_FAILED) {
-    perror("sem_open");
-    exit(-1);
-  }
+  return 0;
+}
 
-  sem_wait(semaph);
-  printf("%s\n", shmp->buff);
-  sem_post(semaph);
-
-  sem_close(semaph);
-  sem_unlink("/semAppView");
-
-  if (shmdt(shmp) == -1)
-    perror("shmdt");
-
-  if (shmctl(shmid, IPC_RMID, 0) == -1)
-    perror("shmctl");
-
-
-  
+int getIdFromStdin() {
+  char buff[MAX_ID_LEN + 1];
+  int count = read(STDIN, buff, MAX_ID_LEN);
+  buff[count] = 0;
+  return atoi(buff);
 }

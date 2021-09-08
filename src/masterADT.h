@@ -3,7 +3,7 @@
 
 typedef struct masterCDT *masterADT;
 
-masterADT nuevoMaster(const char *files[], int fileCount);
+masterADT newMaster(const char *files[], int fileCount);
 
 void initializeSlaves(masterADT master);
 
