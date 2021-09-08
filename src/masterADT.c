@@ -1,11 +1,13 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/select.h>
-#include "include/masterADT.h"
-#include "include/shMemHandlerADT.h"
+#include "./include/masterADT.h"
+#include "./include/shMemHandlerADT.h"
 
 #define STDIN 0
 #define STDOUT 1
@@ -77,10 +79,9 @@ void initializeSlaves(masterADT master) {
 }
 
 void setInitialFiles(masterADT master) {
-  int taskNum = 0;
-
-  for (int i = 0; i < master->slaveCount; i++)
-    for (int j = 0; j < MAX_INITIAL_FILES && taskNum < master->fileCount; j++) {
+  int taskNum = 0, i, j;
+  for (i = 0; i < master->slaveCount; i++)
+    for (j = 0; j < MAX_INITIAL_FILES && taskNum < master->fileCount; j++) {
       write(master->filePipe[i][1], master->files[taskNum], strlen(master->files[taskNum]));
       write(master->filePipe[i][1], "\n", 1);  
       taskNum++;
@@ -90,8 +91,10 @@ void setInitialFiles(masterADT master) {
 }
 
 static void readResultPipe(shMemHandlerADT shMemHandler, int resultPipeEnd) {
-  char buff[MAX_OUT_LEN];
+  char buff[MAX_OUT_LEN + 1];
   int readCount = read(resultPipeEnd, buff, MAX_OUT_LEN);
+  if (readCount == -1)
+    handle_error("read");
   buff[readCount] = 0;
   writeShMem(shMemHandler, buff);
 }
@@ -102,7 +105,8 @@ static void giveAnotherTask(int filePipeEnd, const char *file) {
 }
 
 static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSlaves) {
-  for(int nSlave = 0; nSlave < master->slaveCount; nSlave++)
+  int nSlave;
+  for(nSlave = 0; nSlave < master->slaveCount; nSlave++)
     if (FD_ISSET(master->resultPipe[nSlave][0], &fdSlaves)) {
       (*completedTasks)++;
       readResultPipe(master->shMemHandler, master->resultPipe[nSlave][0]);
@@ -114,13 +118,13 @@ static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSla
 
 void monitorSlaves(masterADT master) {
   fd_set fdSlaves;
-  int completedTasks = 0;
+  int completedTasks = 0, nSlave;
 
   sleep(3); // Wait for view to connect
 
   while (completedTasks < master->fileCount) {
     FD_ZERO(&fdSlaves);
-    for(int nSlave = 0; nSlave < master->slaveCount; nSlave++)
+    for(nSlave = 0; nSlave < master->slaveCount; nSlave++)
       FD_SET(master->resultPipe[nSlave][0], &fdSlaves);
     
     if (select(master->resultPipe[master->slaveCount-1][1], &fdSlaves, NULL, NULL, NULL) == -1)
@@ -133,7 +137,8 @@ void monitorSlaves(masterADT master) {
 }
 
 static void closePipes(masterADT master){
-  for (int i = 0; i < master->slaveCount; i++) {
+  int i;
+  for (i = 0; i < master->slaveCount; i++) {
     close(master->resultPipe[i][0]);
     close(master->filePipe[i][1]);
   }
