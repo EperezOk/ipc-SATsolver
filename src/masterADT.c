@@ -11,6 +11,8 @@
 #define MAX_SLAVE_QTY 5
 #define MAX_INITIAL_FILES 1
 #define MAX_OUT_LEN 512
+#define handle_error(msg) \
+           do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
 typedef struct masterCDT {
   int filePipe[MAX_SLAVE_QTY][2];
@@ -24,10 +26,8 @@ typedef struct masterCDT {
 
 masterADT newMaster(const char *files[], int fileCount) {
   masterADT newMaster = calloc(1, sizeof(masterCDT));
-  if(newMaster == NULL) {
-    perror("malloc");
-    exit(-1);
-  }
+  if(newMaster == NULL)
+    handle_error("malloc");
   newMaster->fileCount = fileCount;
   newMaster->files = files;
   return newMaster;
@@ -43,10 +43,8 @@ void initializeSlaves(masterADT master) {
 
     pid = fork();
 
-    if (pid == -1) {
-      perror("fork");
-      exit(-1);
-    }
+    if (pid == -1)
+      handle_error("fork");
     else if (pid == 0) {
       close(master->filePipe[slaveCount][1]);
       close(master->resultPipe[slaveCount][0]);
@@ -54,8 +52,7 @@ void initializeSlaves(masterADT master) {
       dup2(master->resultPipe[slaveCount][1], STDOUT);
       char *args[2] = {"/tmp", NULL};
       execvp("./slave.out", args);
-      perror("execvp");
-      exit(-1);
+      handle_error("execvp");
     }
     else {
       close(master->filePipe[slaveCount][0]);
@@ -113,7 +110,7 @@ void monitorSlaves(masterADT master) {
       FD_SET(master->resultPipe[nSlave][0], &fdSlaves);
     
     if (select(master->resultPipe[master->slaveCount-1][1], &fdSlaves, NULL, NULL, NULL) == -1)
-      perror("select");
+      handle_error("select");
     else
       manageNewResults(master, &completedTasks, fdSlaves);
   }
@@ -126,6 +123,6 @@ void closePipes(masterADT master){
   }
 }
 
-void killMaster(masterADT master) {
+void freeMaster(masterADT master) {
   free(master);
 }

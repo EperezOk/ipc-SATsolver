@@ -13,6 +13,6 @@ void monitorSlaves(masterADT master);
 
 void closePipes(masterADT master);
 
-void killMaster(masterADT master);
+void freeMaster(masterADT master);
 
 #endif

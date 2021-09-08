@@ -9,7 +9,7 @@ int main(int argc, const char *argv[]) {
   
   if (argc < 2) {
     printf("Please provide the files to process.\n");
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   shMemHandlerADT shMemHandler = newShMemHandler();
@@ -32,7 +32,7 @@ int main(int argc, const char *argv[]) {
   // setInitialFiles(master);
   // monitorSlaves(master);
   // closePipes(master);
-  // killMaster(master);
+  // freeMaster(master);
 
   return 0;
 }

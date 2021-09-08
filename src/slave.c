@@ -24,8 +24,10 @@ int main(int argc, char const *argv[]) {
     FILE *outputStream = executeSolver(line);
     printResult(line, outputStream);
 
-    if (pclose(outputStream) == -1)
+    if (pclose(outputStream) == -1) {
       perror("pclose");
+      exit(EXIT_FAILURE);
+    }
   }
 
   free(line);
@@ -37,8 +39,10 @@ FILE *executeSolver(char *fileName) {
   sprintf(command, "%s %s | grep -o -e \"Number of.*[0-9]\\+\" -e \"CPU time.*\" -e \".*SATISFIABLE\"", SAT_SOLVER, fileName);
   
   FILE *outputStream;
-  if ((outputStream = popen(command, "r")) == NULL)
+  if ((outputStream = popen(command, "r")) == NULL) {
     perror("popen");
+    exit(EXIT_FAILURE);
+  }
 
   return outputStream;
 }
