@@ -10,7 +10,7 @@
 #include "./include/shMemHandlerADT.h"
 
 #define BUF_SIZE 256
-#define MAX_SLOTS 15
+#define MAX_SLOTS 25
 #define SEM_NAME "/semAppView"
 #define OBJ_PERMS (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP)
 #define handle_error(msg) \
@@ -49,15 +49,14 @@ int initShMem(int key) {
 
 void attachTo(shMemHandlerADT shMemHandler, int shMemID, int reader) {
   shMemHandler->shMem = (SharedMem *) shmat(shMemID, NULL, 0);
+  if (shMemHandler->shMem == (void *) -1)
+    handle_error("shmat");
   if (reader)
     shMemHandler->shMem->currentReadSlot = 0;
   else {
     shMemHandler->shMem->currentWriteSlot = 0;
     shMemHandler->shMem->finishedWriting = 0;
   }
-     
-  if (shMemHandler->shMem == (void *) -1)
-    handle_error("shmat");
 }
 
 void writeShMem(shMemHandlerADT shMemHandler, const char *msg) {
@@ -74,6 +73,9 @@ void writeShMem(shMemHandlerADT shMemHandler, const char *msg) {
 void readShMem(shMemHandlerADT shMemHandler, char *buff) {
   if (sem_wait(shMemHandler->semaph) == -1)
     handle_error("sem_post");
+  int n;
+  sem_getvalue(shMemHandler->semaph, &n);
+  printf("%d\n",n);
   snprintf(buff, BUF_SIZE, "%s", shMemHandler->shMem->buff[shMemHandler->shMem->currentReadSlot++]);
 }
 

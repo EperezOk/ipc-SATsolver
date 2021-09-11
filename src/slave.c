@@ -8,7 +8,7 @@
 
 #define STDIN 0
 #define STDOUT 1
-#define MAX_LEN 1024
+#define MAX_LEN 256
 #define SAT_SOLVER "minisat"
 
 FILE *executeSolver(char *fileName);

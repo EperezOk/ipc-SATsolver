@@ -7,7 +7,7 @@
 
 #define STDIN 0
 #define MAX_ID_LEN 15
-#define MAX_OUTPUT_LEN 1024
+#define MAX_OUTPUT_LEN 256
 
 int getIdFromStdin();
 
@@ -25,7 +25,7 @@ int main(int argc, const char *argv[]) {
   attachTo(shMemHandler, shMemID, 1);
   char output[MAX_OUTPUT_LEN+1];
 
-  while(canRead(shMemHandler)) {
+  while(canRead(shMemHandler)) {  
     readShMem(shMemHandler, output);
     printf("%s\n", output);
   }

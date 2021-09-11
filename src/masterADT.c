@@ -13,7 +13,8 @@
 #define STDOUT 1
 #define MAX_SLAVE_QTY 5
 #define MAX_INITIAL_FILES 1
-#define MAX_OUT_LEN 512
+#define MAX_OUT_LEN 256
+#define RESULT_PATH "./results.txt"
 #define handle_error(msg) \
            do { perror(msg); exit(EXIT_FAILURE); } while (0)
 
@@ -90,13 +91,21 @@ void setInitialFiles(masterADT master) {
   master->taskNum = taskNum;
 }
 
-static void readResultPipe(shMemHandlerADT shMemHandler, int resultPipeEnd) {
+static void readResultPipe(masterADT master, int resultPipeEnd, FILE *resultFile, int completedTasks) {
   char buff[MAX_OUT_LEN + 1];
   int readCount = read(resultPipeEnd, buff, MAX_OUT_LEN);
   if (readCount == -1)
     handle_error("read");
   buff[readCount] = 0;
-  writeShMem(shMemHandler, buff);
+  
+
+  writeShMem(master->shMemHandler, buff);
+  if (completedTasks == master->fileCount)
+    finishWriting(master->shMemHandler);
+
+  buff[readCount] = '\n';
+  if (fwrite(buff, sizeof(char), readCount+1, resultFile) == 0)
+    handle_error("fwrite");
 }
 
 static void giveAnotherTask(int filePipeEnd, const char *file) {
@@ -104,12 +113,12 @@ static void giveAnotherTask(int filePipeEnd, const char *file) {
   write(filePipeEnd, "\n", 1);
 }
 
-static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSlaves) {
+static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSlaves, FILE *resultFile) {
   int nSlave;
   for(nSlave = 0; nSlave < master->slaveCount; nSlave++)
     if (FD_ISSET(master->resultPipe[nSlave][0], &fdSlaves)) {
       (*completedTasks)++;
-      readResultPipe(master->shMemHandler, master->resultPipe[nSlave][0]);
+      readResultPipe(master, master->resultPipe[nSlave][0], resultFile, *completedTasks);
 
       if (master->taskNum < master->fileCount)
         giveAnotherTask(master->filePipe[nSlave][1], master->files[(master->taskNum)++]);
@@ -122,6 +131,10 @@ void monitorSlaves(masterADT master) {
 
   sleep(3); // Wait for view to connect
 
+  FILE *resultFile = fopen(RESULT_PATH,"w");
+  if(resultFile == NULL)
+    handle_error("fopen");
+
   while (completedTasks < master->fileCount) {
     FD_ZERO(&fdSlaves);
     for(nSlave = 0; nSlave < master->slaveCount; nSlave++)
@@ -130,10 +143,11 @@ void monitorSlaves(masterADT master) {
     if (select(master->resultPipe[master->slaveCount-1][1], &fdSlaves, NULL, NULL, NULL) == -1)
       handle_error("select");
     else
-      manageNewResults(master, &completedTasks, fdSlaves);
+      manageNewResults(master, &completedTasks, fdSlaves, resultFile);
   }
 
-  finishWriting(master->shMemHandler);
+  if (fclose(resultFile) == -1)
+    handle_error("fclose");
 }
 
 static void closePipes(masterADT master){
