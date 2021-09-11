@@ -73,9 +73,6 @@ void writeShMem(shMemHandlerADT shMemHandler, const char *msg) {
 void readShMem(shMemHandlerADT shMemHandler, char *buff) {
   if (sem_wait(shMemHandler->semaph) == -1)
     handle_error("sem_post");
-  int n;
-  sem_getvalue(shMemHandler->semaph, &n);
-  printf("%d\n",n);
   snprintf(buff, BUF_SIZE, "%s", shMemHandler->shMem->buff[shMemHandler->shMem->currentReadSlot++]);
 }
 
