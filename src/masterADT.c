@@ -98,10 +98,9 @@ static void readResultPipe(masterADT master, int resultPipeEnd, FILE *resultFile
     handle_error("read");
   buff[readCount] = 0;
   
-
-  writeShMem(master->shMemHandler, buff);
   if (completedTasks == master->fileCount)
     finishWriting(master->shMemHandler);
+  writeShMem(master->shMemHandler, buff);
 
   buff[readCount] = '\n';
   if (fwrite(buff, sizeof(char), readCount+1, resultFile) == 0)
