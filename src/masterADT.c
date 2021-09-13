@@ -79,15 +79,18 @@ void initializeSlaves(masterADT master) {
   master->slaveCount = slaveCount;
 }
 
+static void giveAnotherTask(int filePipeEnd, const char *file) {
+  write(filePipeEnd, file, strlen(file));
+  write(filePipeEnd, "\n", 1);
+}
+
 void setInitialFiles(masterADT master) {
   int taskNum = 0, i, j;
   for (i = 0; i < master->slaveCount; i++)
     for (j = 0; j < MAX_INITIAL_FILES && taskNum < master->fileCount; j++) {
-      write(master->filePipe[i][1], master->files[taskNum], strlen(master->files[taskNum]));
-      write(master->filePipe[i][1], "\n", 1);  
+      giveAnotherTask(master->filePipe[i][1], master->files[taskNum]);
       taskNum++;
     }
-
   master->taskNum = taskNum;
 }
 
@@ -105,11 +108,6 @@ static void readResultPipe(masterADT master, int resultPipeEnd, FILE *resultFile
   buff[readCount] = '\n';
   if (fwrite(buff, sizeof(char), readCount+1, resultFile) == 0)
     handle_error("fwrite");
-}
-
-static void giveAnotherTask(int filePipeEnd, const char *file) {
-  write(filePipeEnd, file, strlen(file));
-  write(filePipeEnd, "\n", 1);
 }
 
 static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSlaves, FILE *resultFile) {
