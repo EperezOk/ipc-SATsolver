@@ -87,8 +87,6 @@ static void giveAnotherTask(int filePipeEnd, const char *file) {
 }
 
 void setInitialFiles(masterADT master) {
-  sleep(3); // Wait for view to connect
-
   int taskNum = 0, i, j;
   for (i = 0; i < master->slaveCount; i++)
     for (j = 0; j < MAX_INITIAL_FILES && taskNum < master->fileCount; j++) {

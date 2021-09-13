@@ -17,6 +17,7 @@ int main(int argc, const char *argv[]) {
   masterADT master = newMaster(argv+1, argc-1, getpid());
 
   initializeSlaves(master);
+  sleep(3); // Wait for view to connect
   setInitialFiles(master);
   monitorSlaves(master);
   closeResources(master);
