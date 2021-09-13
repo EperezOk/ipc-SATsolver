@@ -21,6 +21,7 @@
 typedef struct masterCDT {
   int filePipe[MAX_SLAVE_QTY][2];
   int resultPipe[MAX_SLAVE_QTY][2];
+  int filesRead[MAX_SLAVE_QTY];
 
   int fileCount;
   const char **files;
@@ -70,6 +71,7 @@ void initializeSlaves(masterADT master) {
       handle_error("execvp");
     }
     else {
+      master->filesRead[slaveCount] = 0;
       close(master->filePipe[slaveCount][0]);
       close(master->resultPipe[slaveCount][1]);
       slaveCount++;
@@ -85,6 +87,8 @@ static void giveAnotherTask(int filePipeEnd, const char *file) {
 }
 
 void setInitialFiles(masterADT master) {
+  sleep(3); // Wait for view to connect
+
   int taskNum = 0, i, j;
   for (i = 0; i < master->slaveCount; i++)
     for (j = 0; j < MAX_INITIAL_FILES && taskNum < master->fileCount; j++) {
@@ -116,8 +120,9 @@ static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSla
     if (FD_ISSET(master->resultPipe[nSlave][0], &fdSlaves)) {
       (*completedTasks)++;
       readResultPipe(master, master->resultPipe[nSlave][0], resultFile, *completedTasks);
+      master->filesRead[nSlave]++;
 
-      if (master->taskNum < master->fileCount)
+      if (master->taskNum < master->fileCount && master->filesRead[nSlave] >= MAX_INITIAL_FILES)
         giveAnotherTask(master->filePipe[nSlave][1], master->files[(master->taskNum)++]);
     }
 }
@@ -125,8 +130,6 @@ static void manageNewResults(masterADT master, int *completedTasks, fd_set fdSla
 void monitorSlaves(masterADT master) {
   fd_set fdSlaves;
   int completedTasks = 0, nSlave;
-
-  sleep(3); // Wait for view to connect
 
   FILE *resultFile = fopen(RESULT_PATH,"w");
   if(resultFile == NULL)
@@ -136,7 +139,7 @@ void monitorSlaves(masterADT master) {
     FD_ZERO(&fdSlaves);
     for(nSlave = 0; nSlave < master->slaveCount; nSlave++)
       FD_SET(master->resultPipe[nSlave][0], &fdSlaves);
-    
+
     if (select(master->resultPipe[master->slaveCount-1][1], &fdSlaves, NULL, NULL, NULL) == -1)
       handle_error("select");
     else
