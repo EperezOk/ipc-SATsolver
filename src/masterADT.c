@@ -52,7 +52,7 @@ masterADT newMaster(const char *files[], int fileCount, int shmKey) {
 void initializeSlaves(masterADT master) {
   pid_t pid;
 
-  int slaveCount = 0;
+  int slaveCount = 0, i;
   while (slaveCount < MAX_SLAVE_QTY && slaveCount < (master->fileCount+1)/MAX_INITIAL_FILES) {
     pipe(master->filePipe[slaveCount]);
     pipe(master->resultPipe[slaveCount]);
@@ -62,10 +62,20 @@ void initializeSlaves(masterADT master) {
     if (pid == -1)
       handle_error("fork");
     else if (pid == 0) {
+      for (i = 0; i < slaveCount; i++) {
+        close(master->filePipe[i][1]);
+        close(master->resultPipe[i][0]);
+      }
+
       close(master->filePipe[slaveCount][1]);
       close(master->resultPipe[slaveCount][0]);
+
       dup2(master->filePipe[slaveCount][0], STDIN);
       dup2(master->resultPipe[slaveCount][1], STDOUT);
+
+      close(master->filePipe[slaveCount][0]);
+      close(master->resultPipe[slaveCount][1]);
+
       char *args[2] = {"/tmp", NULL};
       execvp("./slave.out", args);
       handle_error("execvp");
