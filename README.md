@@ -1,5 +1,10 @@
 # TP 1 SO - README
 
+## Introduction
+
+The aim of this project is learning how to use the different IPC mechanisms present in a POSIX system.
+We implemented a system that will distribute SAT solving tasks among several processes.
+
 ## Autores
 
 - Baliarda Gonzalo 61490
